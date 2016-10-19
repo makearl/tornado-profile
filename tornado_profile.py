@@ -1,4 +1,6 @@
 """Profile a Tornado application via REST."""
+from operator import itemgetter
+
 import tornado.web
 import yappi
 
@@ -36,6 +38,33 @@ def get_statistics():
     pstats = yappi.convert2pstats(y_func_stats)
     pstats.strip_dirs()
     pstats.sort_stats("cumulative").print_stats(20)
+
+
+def get_profiler_statistics(sort="cum_time", count=20):
+    """Return profiler statistics.
+
+    :param str sort: dictionary key to sort by
+    :param int|None count: the number of results to return, None returns all results.
+    """
+    json_stats = []
+    pstats = yappi.convert2pstats(yappi.get_func_stats())
+    pstats.strip_dirs()
+
+    for func, func_stat in pstats.stats.iteritems():
+        path, line, func_name = func
+        cc, num_calls, total_time, cum_time, callers = func_stat
+        json_stats.append({
+            "path": path,
+            "line": line,
+            "func_name": func_name,
+            "num_calls": num_calls,
+            "total_time": total_time,
+            "total_time_per_call": total_time/num_calls if total_time else 0,
+            "cum_time": cum_time,
+            "cum_time_per_call": cum_time/num_calls if cum_time else 0
+        })
+
+    return sorted(json_stats, key=itemgetter(sort))[:count]
 
 
 class TornadoProfiler(object):
