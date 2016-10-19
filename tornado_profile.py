@@ -2,7 +2,6 @@
 import tornado.web
 import yappi
 
-__version__ = "1.0.0"
 __author__ = "Megan Kearl Patten <megkearl@gmail.com>"
 
 

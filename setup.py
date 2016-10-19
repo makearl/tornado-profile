@@ -19,12 +19,10 @@
 # SOFTWARE.
 from setuptools import setup
 
-import tornado_profile
-
 
 setup(
     name="tornado-profile",
-    version=tornado_profile.__version__,
+    version="1.0.0",
     author="Megan Kearl Patten",
     author_email="megkearl@gmail.com",
     url="https://github.com/makearl/tornado-profile",
