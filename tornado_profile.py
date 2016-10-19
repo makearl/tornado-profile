@@ -16,7 +16,7 @@ def start_profiling():
 def is_profiler_running():
     """Return True if the profiler is running."""
     # GET /profiler
-    yappi.is_running()
+    return yappi.is_running()
 
 
 def stop_profiling():
@@ -29,15 +29,6 @@ def clear_stats():
     """Clear profiler statistics."""
     # DELETE /profiler/stats
     yappi.clear_stats()
-
-
-def get_statistics():
-    """Get profiler statistics."""
-    # GET /profiler/stats?sort=cumulative&total=20
-    y_func_stats = yappi.get_func_stats()
-    pstats = yappi.convert2pstats(y_func_stats)
-    pstats.strip_dirs()
-    pstats.sort_stats("cumulative").print_stats(20)
 
 
 def get_profiler_statistics(sort="cum_time", count=20):
@@ -67,14 +58,64 @@ def get_profiler_statistics(sort="cum_time", count=20):
     return sorted(json_stats, key=itemgetter(sort))[:count]
 
 
+class ProfileStatsHandler(tornado.web.RequestHandler):
+    def get(self):
+        """Return current profiler statistics."""
+        statistics = get_profiler_statistics()
+        self.write(statistics)
+        self.respond(200)
+        self.finish()
+
+    def delete(self):
+        """Clear profiler statistics."""
+        clear_stats()
+        self.respond(204)
+        self.finish()
+
+
+class ProfilerHandler(tornado.web.RequestHandler):
+    def post(self):
+        """Start a new profiler."""
+        if is_profiler_running():
+            self.set_status(201)
+            self.finish()
+            return
+
+        start_profiling()
+        self.set_status(201)
+        self.finish()
+
+    def delete(self):
+        """Stop the profiler."""
+        stop_profiling()
+        self.set_status(204)
+        self.finish()
+
+    def get(self):
+        """Check if the profiler is running."""
+        running = is_profiler_running()
+        self.write({"running": running})
+        self.set_status(200)
+        self.finish()
+
+
 class TornadoProfiler(object):
 
-    def __init__(self, prefix="", handler_base_class=None):
-        # class UpdatedClass(cls, handler_base_class): pass
-        pass
+    def __init__(self, prefix="", handler_base_class=object):
+        self.prefix = prefix
+        self.handler_base_class = handler_base_class
 
     def get_routes(self):
-        return []
+        class UpdatedProfilerHandler(ProfilerHandler, self.handler_base_class):
+            pass
+
+        class UpdatedProfilerStatsHandler(ProfileStatsHandler, self.handler_base_class):
+            pass
+
+        return [
+            (self.prefix + "/profiler", UpdatedProfilerHandler),
+            (self.prefix + "/profiler/stats", UpdatedProfilerStatsHandler)
+        ]
 
 
 def main(port=8888):
