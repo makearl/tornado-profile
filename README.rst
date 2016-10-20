@@ -9,7 +9,8 @@ Add this library to your routes to add a REST API for profiling your Tornado app
 Usage
 -----
 
-.. code-block:: python
+.. code-block::python
+
     import tornado
 
     routes += TornadoProfiler().get_routes()
