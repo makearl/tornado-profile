@@ -6,12 +6,17 @@ Profile a Tornado application through a REST API
 
 Add this library to your routes to add a REST API for profiling your Tornado application.
 
+
 Usage
 -----
 
 .. code-block::
 
     import tornado
+    from tornado_profile import TornadoProfiler
+
+    port = 8888
+    routes = []
 
     routes += TornadoProfiler().get_routes()
     app = tornado.web.Application(routes)
@@ -21,6 +26,13 @@ Usage
     # Create with optional route prefix and base class for handlers
     routes += TornadoProfiler(prefix="", handler_base_class=custom_base_class).get_routes()
 
+
+Installation
+------------
+
+.. code-block::
+
+    $ pip install tornado-profile
 
 
 API
