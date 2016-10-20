@@ -54,6 +54,6 @@ API
     ]
 
     # Clear the profiler statistics
-    DELETE /profiler/stat
+    DELETE /profiler/stats
 
 

@@ -80,10 +80,34 @@ class TornadoProfilerTestCase(AsyncHTTPTestCase):
         assert result.code == 200
 
     @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
-    def test_get_profiler_stats_when_stats_available_returns_correct_result(self, mock_get_profiler_statistics):
+    def test_get_profiler_stats_when_stats_are_empty_returns_correct_result(self, mock_get_profiler_statistics):
         mock_get_profiler_statistics.return_value = []
         result = self.fetch("/profiler/stats", method="GET")
         assert json.loads(result.body) == {'statistics': []}
+
+    def test_get_profiler_stats_when_stats_available_returns_correctly_formatted_result(self):
+        # Start the profiler
+        result = self.fetch("/profiler", method="POST", body=json.dumps({}))
+        assert result.code == 201
+
+        # Stop the profiler
+        result = self.fetch("/profiler", method="DELETE")
+        assert result.code == 204
+
+        # Verify the returned statistics are a list
+        result = self.fetch("/profiler/stats", method="GET")
+        json_results = json.loads(result.body)
+        assert isinstance(json_results["statistics"], list)
+
+        # Verify each statistic has the correct format
+        assert set(json_results["statistics"][0].keys()) == {"path",
+                                                             "line",
+                                                             "func_name",
+                                                             "num_calls",
+                                                             "total_time",
+                                                             "total_time_per_call",
+                                                             "cum_time",
+                                                             "cum_time_per_call"}
 
     def test_delete_profiler_stats_returns_200_status_code(self):
         result = self.fetch("/profiler/stats", method="DELETE")
