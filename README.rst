@@ -39,19 +39,21 @@ API
 
     # Get the profiler statistics
     GET /profiler/stats
-    [
-        {
-            "path": ...,
-            "line": ...,
-            "func_name": ...,
-            "num_calls": ...,
-            "total_time": ...,
-            "total_time_per_call": ...,
-            "cum_time": ...,
-            "cum_time_per_call": ...
-        }
-        ...
-    ]
+    {
+        "statistics": [
+            {
+                "path": ...,
+                "line": ...,
+                "func_name": ...,
+                "num_calls": ...,
+                "total_time": ...,
+                "total_time_per_call": ...,
+                "cum_time": ...,
+                "cum_time_per_call": ...
+            }
+            ...
+        ]
+    }
 
     # Clear the profiler statistics
     DELETE /profiler/stats
