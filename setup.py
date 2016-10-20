@@ -29,7 +29,7 @@ setup(
     py_modules=["tornado_profile"],
     setup_requires=['pytest-runner'],
     install_requires=["tornado", "yappi"],
-    tests_require=["pytest"],
+    tests_require=["pytest", "mock", "coverage"],
     description="Profile a Tornado application via REST",
     long_description=open("README.rst").read(),
     license="MIT",

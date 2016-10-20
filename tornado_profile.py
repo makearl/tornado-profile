@@ -1,10 +1,14 @@
 """Profile a Tornado application via REST."""
+import logging
 from operator import itemgetter
 
 import tornado.web
 import yappi
 
 __author__ = "Megan Kearl Patten <megkearl@gmail.com>"
+
+
+logger = logging.getLogger(__name__)
 
 
 def start_profiling():
@@ -59,21 +63,33 @@ def get_profiler_statistics(sort="cum_time", count=20):
 
 
 class ProfileStatsHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
     def get(self):
         """Return current profiler statistics."""
-        statistics = get_profiler_statistics()
-        self.write(statistics)
-        self.respond(200)
+        try:
+            statistics = get_profiler_statistics()
+            self.write({'statistics': statistics})
+            self.set_status(200)
+        except TypeError:
+            logger.exception('Error while retrieving profiler statistics')
+            self.write({'error': 'No stats available. Start and stop the profiler before trying to retrieve stats.'})
+            self.set_status(404)
+
         self.finish()
 
     def delete(self):
         """Clear profiler statistics."""
         clear_stats()
-        self.respond(204)
+        self.set_status(204)
         self.finish()
 
 
 class ProfilerHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
     def post(self):
         """Start a new profiler."""
         if is_profiler_running():
