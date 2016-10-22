@@ -35,7 +35,7 @@ def clear_stats():
     yappi.clear_stats()
 
 
-def get_profiler_statistics(sort="cum_time", count=20):
+def get_profiler_statistics(sort="cum_time", count=20, strip_dirs=True):
     """Return profiler statistics.
 
     :param str sort: dictionary key to sort by
@@ -43,7 +43,8 @@ def get_profiler_statistics(sort="cum_time", count=20):
     """
     json_stats = []
     pstats = yappi.convert2pstats(yappi.get_func_stats())
-    pstats.strip_dirs()
+    if strip_dirs:
+        pstats.strip_dirs()
 
     for func, func_stat in pstats.stats.iteritems():
         path, line, func_name = func
