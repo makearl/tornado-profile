@@ -60,7 +60,7 @@ def get_profiler_statistics(sort="cum_time", count=20, strip_dirs=True):
             "cum_time_per_call": cum_time/num_calls if cum_time else 0
         })
 
-    return sorted(json_stats, key=itemgetter(sort))[:count]
+    return sorted(json_stats, key=itemgetter(sort), reverse=True)[:count]
 
 
 class ProfileStatsHandler(tornado.web.RequestHandler):
