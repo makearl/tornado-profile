@@ -22,7 +22,7 @@ from setuptools import setup
 
 setup(
     name="tornado-profile",
-    version="1.0.0",
+    version="1.1.0",
     author="Megan Kearl Patten",
     author_email="megkearl@gmail.com",
     url="https://github.com/makearl/tornado-profile",
