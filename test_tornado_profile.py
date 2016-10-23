@@ -109,6 +109,100 @@ class TornadoProfilerTestCase(AsyncHTTPTestCase):
                                                              "cum_time",
                                                              "cum_time_per_call"}
 
+    def test_get_profiler_stats_with_count_when_stats_available_returns_correct_number_of_results(self):
+        # Start the profiler
+        result = self.fetch("/profiler", method="POST", body=json.dumps({}))
+        assert result.code == 201
+
+        # Stop the profiler
+        result = self.fetch("/profiler", method="DELETE")
+        assert result.code == 204
+
+        # Verify the returned statistics are a list
+        result = self.fetch("/profiler/stats?count=1", method="GET")
+        json_results = json.loads(result.body)
+        statistics = json_results["statistics"]
+        assert isinstance(statistics, list)
+
+        # Verify one result was returned
+        assert len(statistics) == 1
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_no_query_parameters_uses_correct_default_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct default arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 20, True)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_valid_sort_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?sort=num_calls", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('num_calls', 20, True)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_valid_count_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?count=1", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 1, True)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_count_of_0_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?count=0", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', None, True)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_strip_dirs_false_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?strip_dirs=false", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 20, False)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_strip_dirs_no_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?strip_dirs=no", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 20, False)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_strip_dirs_0_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?strip_dirs=0", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 20, False)]
+
+    @mock.patch('tornado_profile.get_profiler_statistics', autospec=True)
+    def test_get_profiler_stats_with_strip_dirs_none_query_parameter_uses_correct_arguments(self, mock_get_statistics):
+        self.fetch("/profiler/stats?strip_dirs=None", method="GET")
+
+        # Verify get_profiler_statistics was called with the correct arguments
+        assert mock_get_statistics.mock_calls == [mock.call('cum_time', 20, False)]
+
+    def test_get_profiler_stats_with_invalid_sort_returns_400_status_code(self):
+        result = self.fetch("/profiler/stats?sort=total", method="GET")
+        assert result.code == 400
+
+    def test_get_profiler_stats_with_invalid_sort_returns_correct_error_message(self):
+        result = self.fetch("/profiler/stats?sort=total", method="GET")
+        assert json.loads(result.body) == {
+            'error': "Invalid `sort` 'total', must be in ('num_calls', 'cum_time', 'total_time', 'cum_time_per_call', 'total_time_per_call')."
+        }
+
+    def test_get_profiler_stats_with_invalid_count_returns_400_status_code(self):
+        result = self.fetch("/profiler/stats?count=total", method="GET")
+        assert result.code == 400
+
+    def test_get_profiler_stats_with_invalid_count_returns_correct_error_message(self):
+        result = self.fetch("/profiler/stats?count=total", method="GET")
+        assert json.loads(result.body) == {
+            'error': "Can't cast `count` 'total' to int."
+        }
+
     def test_delete_profiler_stats_returns_200_status_code(self):
         result = self.fetch("/profiler/stats", method="DELETE")
         assert result.code == 204

@@ -40,6 +40,7 @@ def get_profiler_statistics(sort="cum_time", count=20, strip_dirs=True):
 
     :param str sort: dictionary key to sort by
     :param int|None count: the number of results to return, None returns all results.
+    :param bool strip_dirs: if True strip the directory, otherwise return the full path
     """
     json_stats = []
     pstats = yappi.convert2pstats(yappi.get_func_stats())
