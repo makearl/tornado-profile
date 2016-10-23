@@ -68,6 +68,9 @@ API
         ]
     }
 
+    # Get the profiler statistics with optional query parameters
+    GET /profiler/stats?count=1&sort=num_calls&strip_dirs=false
+
     # Clear the profiler statistics
     DELETE /profiler/stats
 
