@@ -75,3 +75,6 @@ API
     DELETE /profiler/stats
 
 
+Tools
+-----
+Command Line: https://github.com/dimrozakis/tornado-profile-client
