@@ -203,8 +203,7 @@ class CProfileHandler(tornado.web.RequestHandler):
 
     def post(self):
         """Start a new profiler."""
-        if not CProfileWrapper.profiler:
-            CProfileWrapper.profiler = cProfile.Profile()
+        CProfileWrapper.profiler = cProfile.Profile()
         CProfileWrapper.profiler.enable()
         self.running = True
         self.set_status(201)
