@@ -1,9 +1,13 @@
 """Profile a Tornado application via REST."""
-import logging
-from operator import itemgetter
 
+import cProfile
+import logging
+import pstats
+import StringIO
 import tornado.web
 import yappi
+
+from operator import itemgetter
 
 __author__ = "Megan Kearl Patten <megkearl@gmail.com>"
 
@@ -64,7 +68,7 @@ def get_profiler_statistics(sort="cum_time", count=20, strip_dirs=True):
     return sorted(json_stats, key=itemgetter(sort), reverse=True)[:count]
 
 
-class ProfileStatsHandler(tornado.web.RequestHandler):
+class YappiProfileStatsHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json')
 
@@ -111,7 +115,7 @@ class ProfileStatsHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class ProfilerHandler(tornado.web.RequestHandler):
+class YappiProfilerHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json')
 
@@ -140,23 +144,131 @@ class ProfilerHandler(tornado.web.RequestHandler):
         self.finish()
 
 
+class CProfileWrapper(object):
+    """Wrap cProfile profiler so that it is static between request handlers"""
+
+    profiler = None
+    running = False
+
+
+class CProfileStatsDumpHandler(tornado.web.RequestHandler):
+
+    profiler = CProfileWrapper.profiler
+    running = CProfileWrapper.running
+
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
+    def post(self):
+        """Dump current profiler statistics into a file."""
+        filename = self.get_argument('filename', 'dump.prof')
+        CProfileWrapper.profiler.dump_stats(filename)
+        self.finish()
+
+
+class CProfileStatsHandler(tornado.web.RequestHandler):
+
+    profiler = CProfileWrapper.profiler
+    running = CProfileWrapper.running
+    
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
+    def get(self):
+        """Return current profiler statistics."""
+        CProfileWrapper.profiler.print_stats()
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(CProfileWrapper.profiler, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        self.set_status(200)
+        self.write(s.getvalue())
+        self.finish()
+
+    def delete(self):
+        """Clear profiler statistics."""
+        CProfileWrapper.profiler.create_stats()
+        self.enable()
+        self.set_status(204)
+        self.finish()
+
+
+class CProfileHandler(tornado.web.RequestHandler):
+
+    profiler = CProfileWrapper.profiler
+    running = CProfileWrapper.running
+
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
+    def post(self):
+        """Start a new profiler."""
+        if not CProfileWrapper.profiler:
+            CProfileWrapper.profiler = cProfile.Profile()
+        CProfileWrapper.profiler.enable()
+        self.running = True
+        self.set_status(201)
+        self.finish()
+
+    def delete(self):
+        """Stop the profiler."""
+        CProfileWrapper.profiler.disable()
+        self.running = False
+        self.set_status(204)
+        self.finish()
+
+    def get(self):
+        """Check if the profiler is running."""
+        self.write({"running": self.running})
+        self.set_status(200)
+        self.finish()
+
+
 class TornadoProfiler(object):
 
-    def __init__(self, prefix="", handler_base_class=object):
+    def __init__(self, prefix="", handler_base_class=object, backend='yappi'):
         self.prefix = prefix
         self.handler_base_class = handler_base_class
+        self.backend = backend
 
     def get_routes(self):
-        class UpdatedProfilerHandler(ProfilerHandler, self.handler_base_class):
-            pass
 
-        class UpdatedProfilerStatsHandler(ProfileStatsHandler, self.handler_base_class):
-            pass
+        if self.backend == 'yappi':
+            class UpdatedProfilerHandler(
+                YappiProfilerHandler, self.handler_base_class):
+                pass
 
-        return [
-            (self.prefix + "/profiler", UpdatedProfilerHandler),
-            (self.prefix + "/profiler/stats", UpdatedProfilerStatsHandler)
-        ]
+            class UpdatedProfileStatsHandler(
+                YappiProfileStatsHandler, self.handler_base_class):
+                pass
+
+            return [
+                (self.prefix + "/profiler", UpdatedProfilerHandler),
+                (self.prefix + "/profiler/stats", UpdatedProfileStatsHandler)
+            ]
+
+        elif self.backend == "cprofile" or self.backend == "cProfile":
+            class UpdatedProfilerHandler(
+                CProfileHandler, self.handler_base_class):
+                pass
+
+            class UpdatedProfileStatsHandler(
+                CProfileStatsHandler, self.handler_base_class):
+                pass
+
+            class UpdatedProfileStatsDumpHandler(
+                CProfileStatsDumpHandler, self.handler_base_class):
+                pass
+
+            return [
+                (self.prefix + "/profiler", UpdatedProfilerHandler),
+                (self.prefix + "/profiler/stats", UpdatedProfileStatsHandler),
+                (self.prefix + "/profiler/stats/dump", UpdatedProfileStatsDumpHandler)
+            ]
+
+
+        else:
+            raise ValueError("No such backend.")
 
 
 def main(port=8888):
